@@ -1,89 +1,199 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 
 export default function ValentinePage() {
+  const [mounted, setMounted] = useState(false);
+  const [phase, setPhase] = useState('envelope'); // 'envelope' | 'question' | 'accepted'
   const [noCount, setNoCount] = useState(0);
-  const [yesPressed, setYesPressed] = useState(false);
   const [noButtonPos, setNoButtonPos] = useState({ x: 0, y: 0 });
-  
-  // FIX: This state ensures we only render "random" elements after mounting
-  const [isMounted, setIsMounted] = useState(false);
 
+  // Fix Hydration issues by waiting for mount
   useEffect(() => {
-    setIsMounted(true);
+    setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (yesPressed) {
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ["#ff0000", "#ff69b4", "#ffffff"]
-      });
-    }
-  }, [yesPressed]);
+  const triggerConfetti = () => {
+    const end = Date.now() + 3 * 1000;
+    const colors = ['#e11d48', '#fb7185', '#ffffff'];
 
-  const handleNoInteraction = () => {
-    // We only calculate this on the client side during an event
-    const randomX = Math.random() * 300 - 150;
-    const randomY = Math.random() * 300 - 150;
-    setNoButtonPos({ x: randomX, y: randomY });
-    setNoCount(noCount + 1);
+    (function frame() {
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: colors,
+      });
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: colors,
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    })();
   };
 
-  if (!isMounted) return null; // Wait until client-side to render anything random
+  const handleNoInteraction = () => {
+    // Moves the button randomly within a safe range
+    const moveX = Math.random() * 200 - 100;
+    const moveY = Math.random() * 200 - 100;
+    setNoButtonPos({ x: moveX, y: moveY });
+    setNoCount(prev => prev + 1);
+  };
 
-  if (yesPressed) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-rose-50 p-4">
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-center bg-white p-10 rounded-3xl shadow-2xl">
-          <h1 className="text-4xl font-bold text-rose-600">I love you Uthra! ❤️</h1>
-          <p className="mt-4 text-gray-600">Happy Valentine’s Day, Uthra. You are the one who makes me stronger and happier every day. 
-            I wish we stay together just like this, now and forever, till the end of our lives.</p>
-        </motion.div>
-      </div>
-    );
-  }
+  const handleYes = () => {
+    setPhase('accepted');
+    triggerConfetti();
+  };
+
+  if (!mounted) return null;
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center bg-pink-100 overflow-hidden">
-      {/* Background hearts only render on client to avoid mismatch */}
-      <div className="absolute inset-0 pointer-events-none">
-        {[...Array(10)].map((_, i) => (
-          <motion.span
+    <main className="relative min-h-screen w-full flex items-center justify-center bg-[#0f172a] overflow-hidden font-sans">
+      
+      {/* Background Decorative Elements */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-rose-900/20 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-pink-900/20 blur-[120px]" />
+        
+        {/* Floating Dust Particles */}
+        {[...Array(20)].map((_, i) => (
+          <motion.div
             key={i}
-            className="absolute text-rose-300 opacity-30 text-2xl"
-            initial={{ y: "110vh", x: `${(i * 10)}vw` }}
-            animate={{ y: "-10vh" }}
-            transition={{ duration: 5 + i, repeat: Infinity, ease: "linear" }}
-          >
-            ❤️
-          </motion.span>
+            className="absolute w-1 h-1 bg-white rounded-full opacity-20"
+            initial={{ y: '100vh', x: `${Math.random() * 100}vw` }}
+            animate={{ y: '-10vh' }}
+            transition={{ duration: 10 + Math.random() * 10, repeat: Infinity, ease: "linear" }}
+          />
         ))}
       </div>
 
-      <div className="z-10 text-center">
-        <h1 className="text-4xl font-black text-rose-600 mb-10">Will you be my Valentine?</h1>
-        <div className="flex gap-4 items-center justify-center">
-          <button 
-            onClick={() => setYesPressed(true)}
-            style={{ fontSize: 16 + noCount * 10 }}
-            className="bg-green-500 text-white font-bold py-2 px-6 rounded-full transition-all"
+      <AnimatePresence mode="wait">
+        {/* PHASE 1: THE SEALED ENVELOPE */}
+        {phase === 'envelope' && (
+          <motion.div
+            key="envelope"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            onClick={() => setPhase('question')}
+            className="z-10 text-center cursor-pointer group"
           >
-            Yes
-          </button>
-          <motion.button
-            onMouseEnter={handleNoInteraction}
-            animate={{ x: noButtonPos.x, y: noButtonPos.y }}
-            className="bg-rose-500 text-white font-bold py-2 px-6 rounded-full"
+            <motion.div
+              whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
+              className="text-9xl mb-8 drop-shadow-[0_0_30px_rgba(225,29,72,0.4)]"
+            >
+              ✉️
+            </motion.div>
+            <p className="text-rose-200/50 tracking-[0.3em] uppercase text-xs animate-pulse group-hover:text-rose-200">
+              A message for my love
+            </p>
+          </motion.div>
+        )}
+
+        {/* PHASE 2: THE QUESTION */}
+        {phase === 'question' && (
+          <motion.div
+            key="question"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="z-10 w-full max-w-md mx-4 p-10 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-2xl shadow-2xl text-center"
           >
-            No
-          </motion.button>
-        </div>
-      </div>
+            <motion.span 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-rose-400 font-medium tracking-widest uppercase text-[10px]"
+            >
+              February 14, 2026
+            </motion.span>
+            
+            <motion.h1 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-4xl md:text-5xl font-serif text-white mt-6 mb-12 italic leading-tight"
+            >
+              Will you be my Valentine?
+            </motion.h1>
+
+            <div className="flex flex-col gap-6 items-center justify-center min-h-[200px]">
+              <motion.button
+                onClick={handleYes}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                style={{ fontSize: Math.min(18 + noCount * 4, 40) }}
+                className="bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 px-12 rounded-full shadow-[0_0_20px_rgba(225,29,72,0.4)] transition-all z-20"
+              >
+                Yes, I will ❤️
+              </motion.button>
+
+              <motion.button
+                onMouseEnter={handleNoInteraction}
+                onClick={handleNoInteraction}
+                animate={{ x: noButtonPos.x, y: noButtonPos.y }}
+                className="text-white/30 text-sm hover:text-white/60 transition-colors py-2"
+              >
+                {noCount === 0 ? "No" : "Wait, think about it..."}
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* PHASE 3: THE HEARTFELT RESPONSE */}
+        {phase === 'accepted' && (
+          <motion.div
+            key="accepted"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="z-10 text-center px-6 max-w-2xl"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', damping: 12 }}
+              className="text-7xl mb-8"
+            >
+              🌹
+            </motion.div>
+            
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="text-5xl md:text-7xl font-serif text-rose-500 italic mb-6"
+            >
+              My Heart is Yours.
+            </motion.h2>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2, duration: 1.5 }}
+              className="text-rose-100/70 text-lg md:text-xl font-light leading-relaxed italic"
+            >
+              "Happy Valentine’s Day Uthra. You are the one who makes me stronger and happier every day. 
+              I wish we stay together just like this, now and forever, till the end of our lives."
+            </motion.p>
+            
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 2.5 }}
+              className="mt-12 text-rose-400/40 text-sm uppercase tracking-[0.5em]"
+            >
+              Forever & Always
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
